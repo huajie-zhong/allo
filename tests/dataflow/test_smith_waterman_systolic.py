@@ -42,21 +42,23 @@ def Smith_Waterman(A: int8[M], B: int8[N], S: int32[P0, P1]):
     in_A: Stream[int32] = df.pipe(src=(i, j - 1), dst=(i, j))
     in_B: Stream[int32] = df.pipe(src=(i - 1, j), dst=(i, j))
     in_C: Stream[int32] = df.pipe(src=(i - 1, j - 1), dst=(i, j))
-    out_B: Stream[int32] = df.pipe(src=(i, j), dst=(i + 1, j))
     out_A: Stream[int32] = df.pipe(src=(i, j), dst=(i, j + 1))
+    out_B: Stream[int32] = df.pipe(src=(i, j), dst=(i + 1, j))
     out_C: Stream[int32] = df.pipe(src=(i, j), dst=(i + 1, j + 1))
 
     with allo.meta_if(i == 0 and j == 0):
-        # Fill the first row and column with zeros
-        out_A.put(0)
-        out_B.put(0)
         out_C.put(0)
+        S[i, j] = 0
     with allo.meta_elif(i == 0):
-        out_A.put(0)
-        out_C.put(0)
-    with allo.meta_elif(j == 0):
+        if j < N: 
+            out_C.put(0)
         out_B.put(0)
-        out_C.put(0)
+        S[i, j] = 0
+    with allo.meta_elif(j == 0):
+        if i < M:
+            out_C.put(0)
+        out_A.put(0)
+        S[i, j] = 0
     with allo.meta_else():
         a = in_A.get()
         b = in_B.get()
@@ -71,6 +73,19 @@ def Smith_Waterman(A: int8[M], B: int8[N], S: int32[P0, P1]):
         out_A.put(max(gap_A, score))
         out_B.put(max(gap_B, score))
         out_C.put(score)
+    
+    # drain
+    with allo.meta_if(i == M and j == N):
+        out_A.get()
+        out_B.get()
+        out_C.get()
+    with allo.meta_elif(i == M and j > 0):
+        out_B.get()
+        out_C.get()
+    with allo.meta_elif(j == N and i > 0):
+        out_A.get()
+        out_C.get()
+    
 
 
 def test_systolic():
@@ -84,8 +99,8 @@ def test_systolic():
         oracle = smith_waterman_score_matrix(A, B)
         np.testing.assert_array_equal(S, oracle)
         print("Passed!")
+        
 
 
 if __name__ == "__main__":
-    for _ in range(10):
-        test_systolic()
+    test_systolic()
