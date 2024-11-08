@@ -36,7 +36,11 @@ def gemm(A: float32[M, K], B: float32[K, N], C: float32[M, N]):
                 a: float32 = in_A.get()
                 b: float32 = in_B.get()
                 c += a * b
-                out_A.put(a)
+                
+                if j < N:
+                    # only keep passing down a if not last column
+                    out_A.put(a)
+                    
             C[m, j - 1] = c
 
 

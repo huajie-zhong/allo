@@ -39,6 +39,13 @@ def gemm(A: float32[M, K], B: float32[K, N], C: float32[M, N]):
             out_A.put(a)
             out_B.put(b)
         C[i - 1, j - 1] = c
+    # drain
+    with allo.meta_if(i == M and j > 0):
+        for _ in range(K):
+            out_B.get()
+    with allo.meta_if(j == N and i > 0):
+        for _ in range(K):
+            out_A.get()
 
 
 def test_systolic():
