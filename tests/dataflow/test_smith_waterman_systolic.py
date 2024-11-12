@@ -10,8 +10,9 @@ import numpy as np
 
 W: int32 = 2  # gap penalty score per length, assuming a linear increament
 
-max_size = 100
-M, N = np.random.randint(30, max_size), np.random.randint(30, max_size)
+# max_size = 50
+# M, N = np.random.randint(30, max_size), np.random.randint(30, max_size)
+M, N = 4, 4
 P0, P1 = M + 1, N + 1
 
 Sim: int32 = 3
@@ -50,7 +51,7 @@ def Smith_Waterman(A: int8[M], B: int8[N], S: int32[P0, P1]):
         out_C.put(0)
         S[i, j] = 0
     with allo.meta_elif(i == 0):
-        if j < N: 
+        if j < N:
             out_C.put(0)
         out_B.put(0)
         S[i, j] = 0
@@ -73,7 +74,7 @@ def Smith_Waterman(A: int8[M], B: int8[N], S: int32[P0, P1]):
         out_A.put(max(gap_A, score))
         out_B.put(max(gap_B, score))
         out_C.put(score)
-    
+
     # drain
     with allo.meta_if(i == M and j == N):
         out_A.get()
@@ -85,7 +86,6 @@ def Smith_Waterman(A: int8[M], B: int8[N], S: int32[P0, P1]):
     with allo.meta_elif(j == N and i > 0):
         out_A.get()
         out_C.get()
-    
 
 
 def test_systolic():
@@ -99,7 +99,10 @@ def test_systolic():
         oracle = smith_waterman_score_matrix(A, B)
         np.testing.assert_array_equal(S, oracle)
         print("Passed!")
-        
+        mod = df.build(
+            Smith_Waterman, target="vitis_hls", mode="hw", project="smith_waterman.prj"
+        )
+        mod(A, B, S)
 
 
 if __name__ == "__main__":

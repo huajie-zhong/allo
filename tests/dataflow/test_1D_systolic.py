@@ -36,11 +36,11 @@ def gemm(A: float32[M, K], B: float32[K, N], C: float32[M, N]):
                 a: float32 = in_A.get()
                 b: float32 = in_B.get()
                 c += a * b
-                
+
                 if j < N:
                     # only keep passing down a if not last column
                     out_A.put(a)
-                    
+
             C[m, j - 1] = c
 
 
@@ -52,6 +52,8 @@ def test_systolic():
         gemm(A, B, C)
         np.testing.assert_allclose(C, np.dot(A, B), atol=1e-5)
         print("Passed!")
+        mod = df.build(gemm, target="vitis_hls", mode="hw", project="gemm.prj")
+        mod(A, B, C)
 
 
 if __name__ == "__main__":
